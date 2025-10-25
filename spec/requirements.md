@@ -10,7 +10,7 @@
 - **User**: アプリケーションを使用する飲酒者
 - **DrinkCard**: お酒の情報（名前、アルコール度数、飲んだ量）を記録するカード
 - **ABV**: Alcohol By Volume（アルコール度数）をパーセントで表した値
-- **PureAlcohol**: 純アルコール量（ml単位）
+- **PureAlcohol**: 純アルコール量（g単位）
 
 ## 要件
 
@@ -36,7 +36,7 @@
 2. WHEN DrinkCardが表示される, THEN THE System SHALL お酒の名前を表示する
 3. WHEN DrinkCardが表示される, THEN THE System SHALL ABVを表示する
 4. WHEN DrinkCardが表示される, THEN THE System SHALL 飲んだ量（ml）を表示する
-5. WHEN DrinkCardが表示される, THEN THE System SHALL 計算された純アルコール量（ml）を表示する
+5. WHEN DrinkCardが表示される, THEN THE System SHALL 計算された純アルコール量（g）を表示する
 
 ### 要件3
 
@@ -65,7 +65,7 @@
 
 #### 受入基準
 
-1. THE System SHALL 純アルコール量を「飲んだ量（ml）× ABV ÷ 100」の式で計算する
+1. THE System SHALL 純アルコール量を「飲んだ量（ml）× ABV ÷ 100 × 0.8」の式で計算する
 2. WHEN Userが飲んだ量とABVを入力する, THEN THE System SHALL 純アルコール量を自動計算する
 3. THE System SHALL 計算結果を小数点第1位まで表示する
 4. WHERE ABVが0から100の範囲外である, THE System SHALL エラーメッセージを表示する

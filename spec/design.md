@@ -52,7 +52,7 @@
   name: string,         // お酒の名前
   abv: number,          // アルコール度数（0-100）
   volume: number,       // 飲んだ量（ml）
-  pureAlcohol: number,  // 純アルコール量（ml）計算値
+  pureAlcohol: number,  // 純アルコール量（g）計算値
   timestamp: number     // 登録日時（Unix timestamp）
 }
 ```
@@ -64,7 +64,7 @@
 **責務**: 純アルコール量の合計を大きく表示
 
 **表示内容**:
-- 合計純アルコール量（ml）
+- 合計純アルコール量（g）
 - 視覚的に目立つデザイン（大きなフォント、背景色）
 
 #### InputForm（入力フォームコンポーネント）
@@ -89,7 +89,7 @@
 - お酒の名前（大きく表示）
 - ABV（%表示）
 - 飲んだ量（ml表示）
-- 純アルコール量（ml表示、強調）
+- 純アルコール量（g表示、強調）
 - 削除ボタン（大きなタップ領域）
 
 ### 3. ビジネスロジック
@@ -100,7 +100,7 @@
 
 ```javascript
 calculatePureAlcohol(volume, abv) {
-  return (volume * abv / 100).toFixed(1);
+  return (volume * abv / 100 * 0.8).toFixed(1);
 }
 ```
 
