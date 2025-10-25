@@ -3,7 +3,7 @@
 // ========================================
 class AlcoholCalculator {
     static calculatePureAlcohol(volume, abv) {
-        return parseFloat((volume * abv / 100).toFixed(1));
+        return parseFloat((volume * abv / 100 * 0.8).toFixed(1));
     }
 }
 
@@ -148,7 +148,7 @@ class UIManager {
                 </div>
                 <div class="card-detail">
                     <div class="detail-label">純アルコール量</div>
-                    <div class="detail-value highlight">${card.pureAlcohol}ml</div>
+                    <div class="detail-value highlight">${card.pureAlcohol}g</div>
                 </div>
             </div>
         `;
