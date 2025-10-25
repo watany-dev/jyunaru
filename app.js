@@ -1,144 +1,124 @@
 // ========================================
-// AlcoholCalculator - 純アルコール量計算
+// ユーティリティ関数
 // ========================================
-class AlcoholCalculator {
-    static calculatePureAlcohol(volume, abv) {
-        return parseFloat((volume * abv / 100 * 0.8).toFixed(1));
-    }
+
+// 純アルコール量を計算
+function calculatePureAlcohol(volume, abv) {
+    return parseFloat((volume * abv / 100 * 0.8).toFixed(1));
 }
 
-
-// ========================================
-// StorageManager - LocalStorage管理
-// ========================================
-class StorageManager {
-    static STORAGE_KEY = 'pureAlcoholMeter_cards';
-
-    static saveCards(cards) {
-        try {
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(cards));
-            return true;
-        } catch (error) {
-            if (error.name === 'QuotaExceededError') {
-                throw new Error('保存容量が不足しています。古いデータを削除してください');
-            }
-            throw new Error('ブラウザのストレージが利用できません。プライベートモードを解除してください');
-        }
+// 入力値をバリデーション
+function validateInput(name, abv, volume) {
+    if (!name || !abv || !volume) {
+        return { valid: false, message: '全ての項目を入力してください' };
     }
 
-    static loadCards() {
-        try {
-            const data = localStorage.getItem(this.STORAGE_KEY);
-            return data ? JSON.parse(data) : [];
-        } catch (error) {
-            console.error('データの読み込みに失敗しました:', error);
-            return [];
-        }
+    const abvNum = parseFloat(abv);
+    if (isNaN(abvNum) || abvNum < 0 || abvNum > 100) {
+        return { valid: false, message: 'アルコール度数は0〜100の範囲で入力してください' };
     }
 
-    static clearCards() {
-        try {
-            localStorage.removeItem(this.STORAGE_KEY);
-            return true;
-        } catch (error) {
-            console.error('データの削除に失敗しました:', error);
-            return false;
-        }
+    const volumeNum = parseFloat(volume);
+    if (isNaN(volumeNum) || volumeNum < 1) {
+        return { valid: false, message: '飲んだ量は1ml以上を入力してください' };
     }
+
+    return { valid: true };
 }
 
+// XSS対策のHTMLエスケープ
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
 // ========================================
-// CardManager - カード管理
+// CardManager - データ管理
 // ========================================
 class CardManager {
     constructor() {
         this.cards = [];
+        this.storageKey = 'pureAlcoholMeter_cards';
     }
 
-    // UUID生成（簡易版）
-    generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    // ストレージから読み込み
+    load() {
+        try {
+            const data = localStorage.getItem(this.storageKey);
+            this.cards = data ? JSON.parse(data) : [];
+        } catch (error) {
+            console.error('データの読み込みに失敗:', error);
+            this.cards = [];
+        }
+    }
+
+    // ストレージに保存
+    save() {
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify(this.cards));
+        } catch (error) {
+            if (error.name === 'QuotaExceededError') {
+                throw new Error('保存容量が不足しています');
+            }
+            throw new Error('ブラウザのストレージが利用できません');
+        }
     }
 
     // カード追加
-    addCard(name, abv, volume) {
-        const pureAlcohol = AlcoholCalculator.calculatePureAlcohol(volume, abv);
+    add(name, abv, volume) {
         const card = {
-            id: this.generateId(),
+            id: Date.now().toString(36) + Math.random().toString(36).substr(2),
             name: name,
             abv: parseFloat(abv),
             volume: parseFloat(volume),
-            pureAlcohol: pureAlcohol,
+            pureAlcohol: calculatePureAlcohol(volume, abv),
             timestamp: Date.now()
         };
-        
+
         this.cards.push(card);
-        StorageManager.saveCards(this.cards);
+        this.save();
         return card;
     }
 
     // カード削除
-    deleteCard(id) {
+    delete(id) {
         this.cards = this.cards.filter(card => card.id !== id);
-        StorageManager.saveCards(this.cards);
+        this.save();
     }
 
-    // 全カード取得
-    getAllCards() {
-        return this.cards;
-    }
-
-    // 合計純アルコール量計算
-    getTotalPureAlcohol() {
-        return this.cards.reduce((total, card) => total + card.pureAlcohol, 0);
-    }
-
-    // データ読み込み
-    loadFromStorage() {
-        this.cards = StorageManager.loadCards();
+    // 合計純アルコール量
+    getTotal() {
+        return this.cards.reduce((sum, card) => sum + card.pureAlcohol, 0);
     }
 }
 
-
 // ========================================
-// UIManager - UI描画管理
+// UIManager - 画面表示管理
 // ========================================
 class UIManager {
     constructor(cardManager) {
         this.cardManager = cardManager;
-        this.totalValueElement = document.getElementById('totalValue');
+        this.totalValue = document.getElementById('totalValue');
         this.cardContainer = document.getElementById('cardContainer');
-        this.errorMessageElement = document.getElementById('errorMessage');
     }
 
     // 合計表示を更新
-    updateTotalDisplay() {
-        const total = this.cardManager.getTotalPureAlcohol();
-        this.totalValueElement.textContent = total.toFixed(1);
-    }
-
-
-    // テキストをエスケープ（XSS対策）
-    escapeHtml(text) {
-        // 文字列置換による効率的なエスケープ（DOM作成を回避）
-        return String(text)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+    updateTotal() {
+        this.totalValue.textContent = this.cardManager.getTotal().toFixed(1);
     }
 
     // カード要素を作成
-    createCardElement(card) {
-        const cardDiv = document.createElement('div');
-        cardDiv.className = 'drink-card';
-        cardDiv.dataset.id = card.id;
-
-        cardDiv.innerHTML = `
+    createCard(card) {
+        const div = document.createElement('div');
+        div.className = 'drink-card';
+        div.dataset.id = card.id;
+        div.innerHTML = `
             <div class="card-header">
-                <div class="card-name">${this.escapeHtml(card.name)}</div>
+                <div class="card-name">${escapeHtml(card.name)}</div>
                 <button class="btn-delete" data-id="${card.id}">削除</button>
             </div>
             <div class="card-details">
@@ -156,208 +136,113 @@ class UIManager {
                 </div>
             </div>
         `;
-
-        return cardDiv;
+        return div;
     }
 
-    // カードリスト全体を描画（初回ロードのみ使用）
-    renderCards() {
+    // 全カードを表示
+    renderAll() {
         this.cardContainer.innerHTML = '';
-        const cards = this.cardManager.getAllCards();
 
-        if (cards.length === 0) {
-            this.showEmptyMessage();
+        if (this.cardManager.cards.length === 0) {
+            this.cardContainer.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">まだ記録がありません</p>';
             return;
         }
 
-        // 新しい順に表示（逆順でループ、配列コピーを回避）
-        for (let i = cards.length - 1; i >= 0; i--) {
-            const cardElement = this.createCardElement(cards[i]);
-            this.cardContainer.appendChild(cardElement);
+        // 新しい順に表示
+        for (let i = this.cardManager.cards.length - 1; i >= 0; i--) {
+            this.cardContainer.appendChild(this.createCard(this.cardManager.cards[i]));
         }
     }
 
-    // 空メッセージを表示
-    showEmptyMessage() {
-        this.cardContainer.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">まだ記録がありません</p>';
+    // カードを追加
+    addCard(card) {
+        const emptyMsg = this.cardContainer.querySelector('p');
+        if (emptyMsg) emptyMsg.remove();
+
+        this.cardContainer.insertBefore(this.createCard(card), this.cardContainer.firstChild);
     }
 
-    // カードを先頭に追加（部分更新）
-    addCardElement(card) {
-        // 空メッセージがある場合は削除
-        const emptyMessage = this.cardContainer.querySelector('p');
-        if (emptyMessage) {
-            emptyMessage.remove();
-        }
+    // カードを削除
+    removeCard(id) {
+        const card = this.cardContainer.querySelector(`[data-id="${id}"]`);
+        if (card) card.remove();
 
-        const cardElement = this.createCardElement(card);
-        // 新しいカードを先頭に挿入
-        this.cardContainer.insertBefore(cardElement, this.cardContainer.firstChild);
-    }
-
-    // 特定のカードを削除（部分更新）
-    removeCardElement(id) {
-        const cardElement = this.cardContainer.querySelector(`[data-id="${id}"]`);
-        if (cardElement) {
-            cardElement.remove();
-        }
-
-        // カードが0になったら空メッセージを表示
         if (this.cardContainer.children.length === 0) {
-            this.showEmptyMessage();
+            this.cardContainer.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">まだ記録がありません</p>';
         }
-    }
-
-    // 画面全体を更新（初回ロードのみ使用）
-    render() {
-        this.updateTotalDisplay();
-        this.renderCards();
     }
 }
 
-
 // ========================================
-// Validator - 入力バリデーション
-// ========================================
-class Validator {
-    static validate(name, abv, volume) {
-        // 全フィールド必須チェック
-        if (!name || !abv || !volume) {
-            return { valid: false, message: '全ての項目を入力してください' };
-        }
-
-        // ABV範囲チェック
-        const abvNum = parseFloat(abv);
-        if (isNaN(abvNum) || abvNum < 0 || abvNum > 100) {
-            return { valid: false, message: 'アルコール度数は0〜100の範囲で入力してください' };
-        }
-
-        // 飲んだ量の正数チェック
-        const volumeNum = parseFloat(volume);
-        if (isNaN(volumeNum) || volumeNum < 1) {
-            return { valid: false, message: '飲んだ量は1ml以上を入力してください' };
-        }
-
-        return { valid: true };
-    }
-}
-
-
-// ========================================
-// ErrorHandler - エラー表示管理
-// ========================================
-class ErrorHandler {
-    constructor(errorElement) {
-        this.errorElement = errorElement;
-        this.timeoutId = null;
-    }
-
-    showError(message) {
-        this.errorElement.textContent = message;
-        this.errorElement.classList.remove('hidden');
-
-        // 既存のタイマーをクリア
-        if (this.timeoutId) {
-            clearTimeout(this.timeoutId);
-        }
-
-        // 3秒後に自動消去
-        this.timeoutId = setTimeout(() => {
-            this.hideError();
-        }, 3000);
-    }
-
-    hideError() {
-        this.errorElement.classList.add('hidden');
-    }
-}
-
-
-// ========================================
-// App - アプリケーション本体
+// App - アプリケーション
 // ========================================
 class App {
     constructor() {
         this.cardManager = new CardManager();
-        this.uiManager = new UIManager(this.cardManager);
-        this.errorHandler = new ErrorHandler(document.getElementById('errorMessage'));
+        this.ui = new UIManager(this.cardManager);
+        this.errorMsg = document.getElementById('errorMessage');
         this.form = document.getElementById('drinkForm');
-
-        // フォーム要素をキャッシュ（パフォーマンス最適化）
-        this.drinkNameInput = document.getElementById('drinkName');
-        this.abvInput = document.getElementById('abv');
-        this.volumeInput = document.getElementById('volume');
+        this.errorTimeout = null;
 
         this.init();
     }
 
     init() {
-        // データ読み込み
-        this.cardManager.loadFromStorage();
-        this.uiManager.render();
-
-        // イベントリスナー設定
-        this.setupEventListeners();
+        this.cardManager.load();
+        this.ui.updateTotal();
+        this.ui.renderAll();
+        this.setupEvents();
     }
 
-    setupEventListeners() {
+    setupEvents() {
         // フォーム送信
-        this.form.addEventListener('submit', (e) => this.handleFormSubmit(e));
+        this.form.addEventListener('submit', (e) => {
+            e.preventDefault();
 
-        // 削除ボタン（イベント委譲）
-        this.uiManager.cardContainer.addEventListener('click', (e) => {
+            const name = document.getElementById('drinkName').value.trim();
+            const abv = document.getElementById('abv').value;
+            const volume = document.getElementById('volume').value;
+
+            const validation = validateInput(name, abv, volume);
+            if (!validation.valid) {
+                this.showError(validation.message);
+                return;
+            }
+
+            try {
+                const card = this.cardManager.add(name, abv, volume);
+                this.ui.addCard(card);
+                this.ui.updateTotal();
+                this.form.reset();
+                this.hideError();
+            } catch (error) {
+                this.showError(error.message);
+            }
+        });
+
+        // 削除ボタン
+        this.ui.cardContainer.addEventListener('click', (e) => {
             if (e.target.classList.contains('btn-delete')) {
-                this.handleDelete(e.target.dataset.id);
+                const id = e.target.dataset.id;
+                this.cardManager.delete(id);
+                this.ui.removeCard(id);
+                this.ui.updateTotal();
             }
         });
     }
 
-    handleFormSubmit(e) {
-        e.preventDefault();
+    showError(message) {
+        this.errorMsg.textContent = message;
+        this.errorMsg.classList.remove('hidden');
 
-        // キャッシュされた要素を使用（パフォーマンス最適化）
-        const name = this.drinkNameInput.value.trim();
-        const abv = this.abvInput.value;
-        const volume = this.volumeInput.value;
-
-        // バリデーション
-        const validation = Validator.validate(name, abv, volume);
-        if (!validation.valid) {
-            this.errorHandler.showError(validation.message);
-            return;
-        }
-
-        try {
-            // カード追加
-            const card = this.cardManager.addCard(name, abv, volume);
-
-            // 部分更新: 新しいカードのみ追加
-            this.uiManager.addCardElement(card);
-            this.uiManager.updateTotalDisplay();
-
-            // フォームリセット
-            this.form.reset();
-
-            // エラーメッセージを非表示
-            this.errorHandler.hideError();
-        } catch (error) {
-            this.errorHandler.showError(error.message);
-        }
+        if (this.errorTimeout) clearTimeout(this.errorTimeout);
+        this.errorTimeout = setTimeout(() => this.hideError(), 3000);
     }
 
-
-    handleDelete(id) {
-        this.cardManager.deleteCard(id);
-        // 部分更新: 削除されたカードのみ削除
-        this.uiManager.removeCardElement(id);
-        this.uiManager.updateTotalDisplay();
+    hideError() {
+        this.errorMsg.classList.add('hidden');
     }
 }
 
-
-// ========================================
 // アプリケーション起動
-// ========================================
-document.addEventListener('DOMContentLoaded', () => {
-    new App();
-});
+document.addEventListener('DOMContentLoaded', () => new App());
