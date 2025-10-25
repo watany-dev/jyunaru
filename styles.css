@@ -212,6 +212,13 @@ header h1 {
     flex: 1;
 }
 
+.card-timestamp {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 15px;
+    padding-left: 2px;
+}
+
 .btn-delete {
     background-color: var(--danger-color);
     color: white;

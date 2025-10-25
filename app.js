@@ -36,6 +36,18 @@ function escapeHtml(text) {
         .replace(/'/g, '&#039;');
 }
 
+// タイムスタンプをフォーマット
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    return `${year}年${month}月${day}日 ${hours}:${minutes}`;
+}
+
 // ========================================
 // CardManager - データ管理
 // ========================================
@@ -69,14 +81,14 @@ class CardManager {
     }
 
     // カード追加
-    add(name, abv, volume) {
+    add(name, abv, volume, customTimestamp = null) {
         const card = {
             id: Date.now().toString(36) + Math.random().toString(36).substr(2),
             name: name,
             abv: parseFloat(abv),
             volume: parseFloat(volume),
             pureAlcohol: calculatePureAlcohol(volume, abv),
-            timestamp: Date.now()
+            timestamp: customTimestamp !== null ? customTimestamp : Date.now()
         };
 
         this.cards.push(card);
@@ -121,6 +133,7 @@ class UIManager {
                 <div class="card-name">${escapeHtml(card.name)}</div>
                 <button class="btn-delete" data-id="${card.id}">削除</button>
             </div>
+            <div class="card-timestamp">${formatTimestamp(card.timestamp)}</div>
             <div class="card-details">
                 <div class="card-detail">
                     <div class="detail-label">アルコール度数</div>
@@ -202,6 +215,7 @@ class App {
             const name = document.getElementById('drinkName').value.trim();
             const abv = document.getElementById('abv').value;
             const volume = document.getElementById('volume').value;
+            const registrationTime = document.getElementById('registrationTime').value;
 
             const validation = validateInput(name, abv, volume);
             if (!validation.valid) {
@@ -210,7 +224,13 @@ class App {
             }
 
             try {
-                const card = this.cardManager.add(name, abv, volume);
+                // カスタム登録時間を処理（空の場合はnullを渡して現在時刻を使用）
+                let customTimestamp = null;
+                if (registrationTime) {
+                    customTimestamp = new Date(registrationTime).getTime();
+                }
+
+                const card = this.cardManager.add(name, abv, volume, customTimestamp);
                 this.ui.addCard(card);
                 this.ui.updateTotal();
                 this.form.reset();
