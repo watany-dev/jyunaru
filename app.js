@@ -121,9 +121,13 @@ class UIManager {
 
     // テキストをエスケープ（XSS対策）
     escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        // 文字列置換による効率的なエスケープ（DOM作成を回避）
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     // カード要素を作成
@@ -156,25 +160,55 @@ class UIManager {
         return cardDiv;
     }
 
-    // カードリスト全体を描画
+    // カードリスト全体を描画（初回ロードのみ使用）
     renderCards() {
         this.cardContainer.innerHTML = '';
         const cards = this.cardManager.getAllCards();
-        
+
         if (cards.length === 0) {
-            this.cardContainer.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">まだ記録がありません</p>';
+            this.showEmptyMessage();
             return;
         }
 
-        // 新しい順に表示
-        cards.reverse().forEach(card => {
-            const cardElement = this.createCardElement(card);
+        // 新しい順に表示（逆順でループ、配列コピーを回避）
+        for (let i = cards.length - 1; i >= 0; i--) {
+            const cardElement = this.createCardElement(cards[i]);
             this.cardContainer.appendChild(cardElement);
-        });
+        }
     }
 
+    // 空メッセージを表示
+    showEmptyMessage() {
+        this.cardContainer.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">まだ記録がありません</p>';
+    }
 
-    // 画面全体を更新
+    // カードを先頭に追加（部分更新）
+    addCardElement(card) {
+        // 空メッセージがある場合は削除
+        const emptyMessage = this.cardContainer.querySelector('p');
+        if (emptyMessage) {
+            emptyMessage.remove();
+        }
+
+        const cardElement = this.createCardElement(card);
+        // 新しいカードを先頭に挿入
+        this.cardContainer.insertBefore(cardElement, this.cardContainer.firstChild);
+    }
+
+    // 特定のカードを削除（部分更新）
+    removeCardElement(id) {
+        const cardElement = this.cardContainer.querySelector(`[data-id="${id}"]`);
+        if (cardElement) {
+            cardElement.remove();
+        }
+
+        // カードが0になったら空メッセージを表示
+        if (this.cardContainer.children.length === 0) {
+            this.showEmptyMessage();
+        }
+    }
+
+    // 画面全体を更新（初回ロードのみ使用）
     render() {
         this.updateTotalDisplay();
         this.renderCards();
@@ -248,7 +282,12 @@ class App {
         this.uiManager = new UIManager(this.cardManager);
         this.errorHandler = new ErrorHandler(document.getElementById('errorMessage'));
         this.form = document.getElementById('drinkForm');
-        
+
+        // フォーム要素をキャッシュ（パフォーマンス最適化）
+        this.drinkNameInput = document.getElementById('drinkName');
+        this.abvInput = document.getElementById('abv');
+        this.volumeInput = document.getElementById('volume');
+
         this.init();
     }
 
@@ -276,9 +315,10 @@ class App {
     handleFormSubmit(e) {
         e.preventDefault();
 
-        const name = document.getElementById('drinkName').value.trim();
-        const abv = document.getElementById('abv').value;
-        const volume = document.getElementById('volume').value;
+        // キャッシュされた要素を使用（パフォーマンス最適化）
+        const name = this.drinkNameInput.value.trim();
+        const abv = this.abvInput.value;
+        const volume = this.volumeInput.value;
 
         // バリデーション
         const validation = Validator.validate(name, abv, volume);
@@ -289,14 +329,15 @@ class App {
 
         try {
             // カード追加
-            this.cardManager.addCard(name, abv, volume);
-            
-            // 画面更新
-            this.uiManager.render();
-            
+            const card = this.cardManager.addCard(name, abv, volume);
+
+            // 部分更新: 新しいカードのみ追加
+            this.uiManager.addCardElement(card);
+            this.uiManager.updateTotalDisplay();
+
             // フォームリセット
             this.form.reset();
-            
+
             // エラーメッセージを非表示
             this.errorHandler.hideError();
         } catch (error) {
@@ -307,7 +348,9 @@ class App {
 
     handleDelete(id) {
         this.cardManager.deleteCard(id);
-        this.uiManager.render();
+        // 部分更新: 削除されたカードのみ削除
+        this.uiManager.removeCardElement(id);
+        this.uiManager.updateTotalDisplay();
     }
 }
 
