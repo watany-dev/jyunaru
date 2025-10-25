@@ -6,12 +6,13 @@
     <meta name="description" content="純アルメーター - 飲酒量を簡単に記録・計測するアプリ">
     <title>純アルメーター</title>
 
-    <!-- Resource Hints for performance -->
+    <!-- Resource Hints for network optimization -->
+    <link rel="preconnect" href="https://github.githubassets.com" crossorigin>
     <link rel="dns-prefetch" href="//github.githubassets.com">
 
-    <!-- Non-blocking CSS loading -->
-    <link rel="preload" href="styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="styles.css"></noscript>
+    <!-- Critical CSS with high priority -->
+    <link rel="preload" href="styles.css" as="style" fetchpriority="high">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <main class="container">
