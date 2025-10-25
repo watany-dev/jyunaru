@@ -13,7 +13,7 @@
     --background-color: #f5f5f5;
     --card-color: #ffffff;
     --text-dark: #333333;
-    --text-light: #666666;
+    --text-light: #555555;
     --border-color: #dddddd;
     --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -135,6 +135,13 @@ header h1 {
 
 .form-group input.error {
     border-color: var(--danger-color);
+}
+
+.input-hint {
+    color: var(--text-light);
+    font-size: 0.85rem;
+    margin-top: 4px;
+    display: block;
 }
 
 /* ボタン */
