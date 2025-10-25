@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="純アルメーター - 飲酒量を簡単に記録・計測するアプリ">
+    <title>純アルメーター</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍺 純アルメーター</h1>
+        </header>
+
+        <!-- 合計表示エリア -->
+        <section class="total-display">
+            <div class="total-label">今日の純アルコール量</div>
+            <div class="total-value" id="totalValue">0.0</div>
+            <div class="total-unit">ml</div>
+        </section>
+
+        <!-- エラーメッセージ表示エリア -->
+        <div id="errorMessage" class="error-message hidden"></div>
+
+        <!-- 入力フォーム -->
+        <section class="input-form">
+            <form id="drinkForm">
+                <div class="form-group">
+                    <label for="drinkName">お酒の名前</label>
+                    <input 
+                        type="text" 
+                        id="drinkName" 
+                        name="drinkName" 
+                        placeholder="例: ビール、ワイン"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="abv">アルコール度数 (%)</label>
+                    <input 
+                        type="number" 
+                        id="abv" 
+                        name="abv" 
+                        placeholder="例: 5.0"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="volume">飲んだ量 (ml)</label>
+                    <input 
+                        type="number" 
+                        id="volume" 
+                        name="volume" 
+                        placeholder="例: 350"
+                        min="1"
+                        step="1"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="btn-primary">記録する</button>
+            </form>
+        </section>
+
+        <!-- カードリスト -->
+        <section class="card-list">
+            <h2>飲酒記録</h2>
+            <div id="cardContainer" class="card-container">
+                <!-- カードがここに動的に追加されます -->
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
